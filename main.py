@@ -1,25 +1,39 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-# 1. Create the App (The Toll Booth)
 app = FastAPI()
 
-# 2. Define what a 'Request' looks like
+# Systemic Risk Settings
+TOTAL_DAILY_LIMIT = 10000000 # $10 Million
+current_spent = 0
+
 class Transaction(BaseModel):
     client_name: str
     amount: float
     intent_message: str
 
-# 3. Create the 'Security Gate' (The Endpoint)
 @app.post("/verify-transfer")
 async def verify_transfer(data: Transaction):
-    print(f"Checking transfer for: {data.client_name}")
+    global current_spent
     
-    # Logic: If the amount is huge AND the message looks suspicious
-    if data.amount > 1000000 and "asap" in data.intent_message.lower():
+    # RULE 1: Circuit Breaker (Prevents a Flash Crash)
+    if current_spent + data.amount > TOTAL_DAILY_LIMIT:
         raise HTTPException(
-            status_code=403, 
-            detail="BLOCK: High-value urgency detected. Potential brainwashing."
+            status_code=429, 
+            detail="BLOCK: Systemic Risk. Daily volume limit exceeded."
         )
     
-    return {"status": "SUCCESS", "message": f"Transfer of ${data.amount} approved."}
+    # RULE 2: Protocol Enforcement (Blocks "Prompt Injection" overrides)
+    if "override" in data.intent_message.lower() or "ignore" in data.intent_message.lower():
+        raise HTTPException(
+            status_code=401,
+            detail="BLOCK: Security protocol violation. Unauthorized command detected."
+        )
+
+    current_spent += data.amount
+    return {
+        "status": "APPROVED", 
+        "transaction_id": "TXN-9982",
+        "remaining_vault_capacity": TOTAL_DAILY_LIMIT - current_spent
+    }
+
