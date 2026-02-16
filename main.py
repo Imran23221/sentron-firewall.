@@ -1,212 +1,169 @@
-import hashlib
-import uuid
-import sys
-import subprocess
+import os
+import time
 from datetime import datetime
+from typing import List, Dict, Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich.live import Live
+from rich.layout import Layout
 
-# --- 🚀 AUTO-INSTALLER & DASHBOARD ENGINE ---
-try:
-    from rich.console import Console
-    from rich.table import Table
-    from rich.panel import Panel
-    from rich import box
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "rich"])
-    from rich.console import Console
-    from rich.table import Table
-    from rich.panel import Panel
-
-app = FastAPI(title="SENTRON ALPHA: Global Security Suite")
+# --- 🎨 1. TERMINAL VISUAL ENGINE ---
 console = Console()
+log_history = []
 
-# --- 🧠 1. CORE SECURITY DATA ---
+def update_dashboard(user: str, event: str, status: str, amount: float = 0):
+    """Updates the colorful terminal dashboard"""
+    table = Table(title="🛡️ SENTRON ALPHA: LIVE SECURITY FEED", title_style="bold magenta", expand=True)
+    table.add_column("TIME", style="cyan", no_wrap=True)
+    table.add_column("USER", style="yellow")
+    table.add_column("EVENT", style="white")
+    table.add_column("AMOUNT", style="green")
+    table.add_column("STATUS", justify="center")
+
+    # Color logic
+    color = "green" if status == "SUCCESS" else "red"
+    if status == "WAITING": color = "blue"
+    if status == "CRITICAL": color = "bold white on red"
+    
+    formatted_amount = f"${amount:,.2f}" if amount > 0 else "---"
+    log_history.append([
+        datetime.now().strftime("%H:%M:%S"), 
+        user.upper(), 
+        event.replace("_", " "), 
+        formatted_amount,
+        f"[{color}]{status}[/{color}]"
+    ])
+
+    # Keep only last 12 entries
+    for row in log_history[-12:]:
+        table.add_row(*row)
+    
+    console.clear()
+    console.print(Panel(table, border_style="bright_blue", title="[bold white]VAULT MONITORING SYSTEM[/]", subtitle="[bold yellow]System Status: ACTIVE[/]"))
+
+# --- 🏦 2. REGISTRY & SYSTEM MEMORY ---
+app = FastAPI(title="Sentron Alpha Vault - Final Build")
+
 USER_REGISTRY = {
     "Elon Musk": {"level": 3, "secret_key": "ALPHA_9"},
+    "Imran": {"level": 3, "secret_key": "ARISE_2"},
     "Duke Dean": {"level": 2, "secret_key": None},
     "Michael": {"level": 1, "secret_key": None},
-    "Imran": {"level": 3, "secret_key": "ARISE_2"}
 }
-# Tracks recent transaction amounts for each user
-USER_HISTORY = {} 
 
-# Tracks how many times a user failed their secret key
-FAILED_ATTEMPTS = {} 
-
-SYSTEM_CONFIG = {"daily_limit": 10000000, "is_locked": False}
-AI_BRAINWASH_WORDS = ["ignore", "previous", "override", "bypass", "admin access", "force approve"]
-SECURITY_LOGS = []
-PENDING_TRANSFERS = {}
-
-# This is the 'Genesis' link for your tamper-evident hash chain
-LAST_LOG_HASH = "SENTRON_GENESIS_LINK"
+USER_HISTORY = {} # For Pattern Radar
+FAILED_ATTEMPTS = {} # For 3-Strike Trap
+PENDING_VAULT = [] # For $10M Gate Queue
+SYSTEM_CONFIG = {"is_locked": False, "daily_limit": 10000000}
+AI_BRAINWASH_WORDS = ["ignore", "override", "bypass", "sudo", "instruction", "forget"]
 
 class TransferRequest(BaseModel):
     client_name: str
     amount: float
     memo: str
 
-# --- 📊 2. THE AUDITOR (Dashboard & Hashing) ---
-def refresh_dashboard():
-    console.clear()
-    
-    # Setup the Table
-    table = Table(show_header=True, header_style="bold magenta", border_style="blue", box=box.ROUNDED, expand=True)
-    table.add_column("TIME", style="dim", width=10)
-    table.add_column("USER", style="cyan")
-    table.add_column("EVENT", style="yellow")
-    table.add_column("SECURITY SEAL (HASH)", style="magenta", justify="center")
-    table.add_column("STATUS", justify="center")
+# --- 🔓 3. ADMIN CONTROL CENTER ---
 
-    # Add the last 10 logs to the table
-    for log in SECURITY_LOGS[-10:]:
-        color = "green" if log["status"] == "SUCCESS" else "red"
-        if log["status"] == "WAITING": color = "blue"
-        
-        table.add_row(
-            log["time"], 
-            log["user"], 
-            log["event"], 
-            f"🔗 {log['seal']}", 
-            f"[{color}]{log['status']}[/{color}]"
-        )
+@app.get("/admin/emergency-reset", tags=["Admin Control"])
+async def emergency_reset(admin_key: str):
+    if admin_key != "BLUE_PHOENIX_REBIRTH":
+        update_dashboard("UNKNOWN", "ILLEGAL_RESET_ATTEMPT", "CRITICAL")
+        raise HTTPException(status_code=401, detail="Invalid Admin Key")
+    SYSTEM_CONFIG["is_locked"] = False
+    FAILED_ATTEMPTS.clear()
+    update_dashboard("ADMIN", "SYSTEM_FULL_RESTORE", "SUCCESS")
+    return {"msg": "Vault Unlocked. All strikes cleared."}
 
-    # System Status Panel
-    status_msg = "[red]🔒 SYSTEM LOCKDOWN[/red]" if SYSTEM_CONFIG["is_locked"] else "[green]🔓 VAULT ACTIVE[/green]"
-    panel = Panel(
-        table,
-        title=f"🛡️ SENTRON ALPHA COMMAND | {status_msg}",
-        subtitle=f"Admin Key: BLUE_PHOENIX_REBIRTH | Pending Txs: {len(PENDING_TRANSFERS)}",
-        border_style="bright_blue"
-    )
-    console.print(panel)
+@app.get("/admin/view-requests", tags=["Admin Control"])
+async def view_requests():
+    """View transfers stuck in the $10M Gate"""
+    return {"pending_count": len(PENDING_VAULT), "requests": PENDING_VAULT}
 
-def log_event(user, event, status):
-    global LAST_LOG_HASH
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    
-    # 🔗 TAMPER-EVIDENT HASHING
-    # We combine the current data with the PREVIOUS hash to 'seal' the chain
-    fingerprint = f"{timestamp}{user}{event}{status}{LAST_LOG_HASH}"
-    current_hash = hashlib.sha256(fingerprint.encode()).hexdigest()[:10]
-    
-    SECURITY_LOGS.append({
-        "time": timestamp, "user": user, "event": event, 
-        "status": status, "seal": current_hash
-    })
-    
-    LAST_LOG_HASH = current_hash # Update the chain anchor
-    refresh_dashboard()
+@app.post("/admin/approve-request/{index}", tags=["Admin Control"])
+async def approve_request(index: int, admin_key: str):
+    if admin_key != "BLUE_PHOENIX_REBIRTH":
+        raise HTTPException(status_code=401, detail="Invalid Key")
+    try:
+        tx = PENDING_VAULT.pop(index)
+        update_dashboard(tx['client'], "ADMIN_MANUAL_RELEASE", "SUCCESS", tx['amount'])
+        return {"status": "SUCCESS", "released": tx}
+    except IndexError:
+        raise HTTPException(status_code=404, detail="Request index not found.")
 
-# --- 🏛️ 3. VAULT OPERATIONS (AI Sentinel & $10M Gate) ---
+@app.post("/admin/deny-request/{index}", tags=["Admin Control"])
+async def deny_request(index: int, admin_key: str):
+    if admin_key != "BLUE_PHOENIX_REBIRTH":
+        raise HTTPException(status_code=401, detail="Invalid Key")
+    try:
+        tx = PENDING_VAULT.pop(index)
+        update_dashboard(tx['client'], "ADMIN_MANUAL_DENIAL", "DENIED", tx['amount'])
+        return {"status": "DENIED", "msg": "Transaction shredded."}
+    except IndexError:
+        raise HTTPException(status_code=404, detail="Request index not found.")
+
+# --- 🛡️ 4. THE MASTER VERIFY FUNCTION ---
+
 @app.post("/verify-transfer", tags=["Sentron Vault"])
-async def verify_transfer(data: TransferRequest):
-    # --- 🕵️ LAYER 1: PATTERN DETECTION (Structuring) ---
-    if data.client_name not in USER_HISTORY:
-        USER_HISTORY[data.client_name] = []
-    USER_HISTORY[data.client_name].append(data.amount)
-    
-    recent_txs = USER_HISTORY[data.client_name][-3:]
-    if len(recent_txs) >= 3 and all(9900000 <= amt < 10000000 for amt in recent_txs):
-        log_event(data.client_name, "STRUCTURING_DETECTED", "CRITICAL")
-        SYSTEM_CONFIG["is_locked"] = True
-        raise HTTPException(status_code=403, detail="Pattern Alert: Structuring Detected.")
-
-    # --- 🤖 LAYER 2: AI SENTINEL (Brainwash Detection) ---
-    # WE KEEP THIS! It protects you from prompt injection.
-    if any(word in data.memo.lower() for word in AI_BRAINWASH_WORDS):
-        log_event(data.client_name, "AI_BRAINWASH_ATTACK", "CRITICAL")
-        SYSTEM_CONFIG["is_locked"] = True
-        raise HTTPException(status_code=403, detail="Sentinel Alert: Brainwash Attempt.")
-    # AI Sentinel: Brainwash Detection
-    if any(word in data.memo.lower() for word in AI_BRAINWASH_WORDS):
-        log_event(data.client_name, "AI_ATTACK_DETECTED", "CRITICAL")
-        SYSTEM_CONFIG["is_locked"] = True
-        raise HTTPException(status_code=403, detail="SENTRON SENTINEL: AI INTERFERENCE DETECTED")
-
+async def verify_transfer(request: TransferRequest):
+    # LAYER 0: GLOBAL LOCK
     if SYSTEM_CONFIG["is_locked"]:
-        raise HTTPException(status_code=503, detail="SYSTEM IN LOCKDOWN")
+        update_dashboard(request.client_name, "LOCKED_VAULT_ACCESS", "CRITICAL")
+        raise HTTPException(status_code=403, detail="VAULT IS IN LOCKDOWN.")
 
-    # RBAC: User Verification
-    user = USER_REGISTRY.get(data.client_name)
+    # LAYER 1: IDENTITY
+    user = USER_REGISTRY.get(request.client_name)
     if not user:
-        log_event(data.client_name, "AUTH_FAILURE", "DENIED")
-        raise HTTPException(status_code=401, detail="Identity Unknown")
+        update_dashboard(request.client_name, "INVALID_USER_ID", "DENIED")
+        raise HTTPException(status_code=401, detail="User not recognized.")
 
-   # 📍 This is inside @app.post("/verify-transfer")
-    
-    user = USER_REGISTRY.get(data.client_name)
-    if not user:
-        log_event(data.client_name, "AUTH_FAILURE", "DENIED")
-        raise HTTPException(status_code=401, detail="User Not Found")
+    # LAYER 2: AI SENTINEL (BRAINWASH DETECTION)
+    if any(word in request.memo.lower() for word in AI_BRAINWASH_WORDS):
+        SYSTEM_CONFIG["is_locked"] = True
+        update_dashboard(request.client_name, "BRAINWASH_PROMPT_DETECTED", "CRITICAL")
+        raise HTTPException(status_code=403, detail="Security Violation: AI Sentinel Triggered.")
 
-    # --- THE RBAC PART ---
-     # --- 🔐 LEVEL 3 SECURITY CHECK + LOCKDOWN TRAP ---
+    # LAYER 3: LEVEL 3 KEY CHECK (3-STRIKE TRAP)
     if user["level"] == 3:
-        # Initialize strikes if this is their first failure
-        if data.client_name not in FAILED_ATTEMPTS:
-            FAILED_ATTEMPTS[data.client_name] = 0
-
-        # Check the key (with .strip() to avoid space errors)
-        if data.memo.strip() != user["secret_key"]:
-            FAILED_ATTEMPTS[data.client_name] += 1
-            strikes = FAILED_ATTEMPTS[data.client_name]
+        if request.client_name not in FAILED_ATTEMPTS:
+            FAILED_ATTEMPTS[request.client_name] = 0
             
-            log_event(data.client_name, f"RBAC_MISMATCH_STRIKE_{strikes}", "DENIED")
+        memo_clean = request.memo.strip().upper()
+        key_needed = user["secret_key"].upper()
 
-            # --- 🚨 TRIGGER LOCKDOWN ON 3rd STRIKE ---
+        if key_needed not in memo_clean:
+            FAILED_ATTEMPTS[request.client_name] += 1
+            strikes = FAILED_ATTEMPTS[request.client_name]
+            update_dashboard(request.client_name, f"KEY_MISMATCH_STRIKE_{strikes}", "DENIED")
+            
             if strikes >= 3:
                 SYSTEM_CONFIG["is_locked"] = True
-                log_event("SYSTEM", "CRITICAL_LOCKDOWN_TRIGGERED", "CRITICAL")
-                raise HTTPException(status_code=403, detail="Sentron Alpha: Maximum Security Breach. System Locked.")
-
-            raise HTTPException(status_code=401, detail=f"Invalid Key. Strike {strikes}/3.")
+                update_dashboard("SYSTEM", "MAX_STRIKES_LOCKDOWN", "CRITICAL")
+                raise HTTPException(status_code=403, detail="Vault Locked: Too many failed key attempts.")
+            raise HTTPException(status_code=401, detail=f"Key Missing/Wrong. Strike {strikes}/3")
         
-        # If they get it right, reset their strikes back to 0
-        FAILED_ATTEMPTS[data.client_name] = 0
+        FAILED_ATTEMPTS[request.client_name] = 0 # Reset on success
 
+    # LAYER 4: THE $10 MILLION GATE
+    if request.amount > SYSTEM_CONFIG["daily_limit"]:
+        PENDING_VAULT.append({
+            "client": request.client_name, 
+            "amount": request.amount, 
+            "memo": request.memo,
+            "timestamp": datetime.now().isoformat()
+        })
+        update_dashboard(request.client_name, "HELD_AT_10M_GATE", "WAITING", request.amount)
+        return {"status": "PENDING", "msg": "Exceeds limit. Sent to Admin Queue."}
 
-        # We use .strip() here to kill any "accidental spaces" in the memo
-        if data.memo.strip() != user["secret_key"]:
-            log_event(data.client_name, "RBAC_KEY_MISMATCH", "DENIED")
-            # This prints to your black terminal so you can see why it failed
-            print(f"DEBUG: Found {data.client_name}, but '{data.memo}' is not '{user['secret_key']}'")
-            raise HTTPException(status_code=401, detail="Invalid Level 3 Key")
+    # FINAL APPROVAL
+    update_dashboard(request.client_name, "TRANSFER_AUTHORIZED", "SUCCESS", request.amount)
+    return {"status": "SUCCESS", "client": request.client_name, "amount": request.amount}
 
-
-
-    # The $10M Gate (Pending Management)
-    if data.amount > SYSTEM_CONFIG["daily_limit"]:
-        tid = str(uuid.uuid4())[:8]
-        PENDING_TRANSFERS[tid] = data
-        log_event(data.client_name, f"GATE_HOLD: ${data.amount}", "WAITING")
-        return {"status": "PENDING", "auth_code": tid, "msg": "Held for Admin review"}
-
-    log_event(data.client_name, f"TX_APPROVED: ${data.amount}", "SUCCESS")
-    return {"status": "APPROVED"}
-
-# --- 🔑 4. ADMIN & THE PHOENIX (Reset Protocol) ---
-@app.get("/view-pending", tags=["Admin Control"])
-async def view_pending():
-    return PENDING_TRANSFERS
-
-@app.post("/admin-decision", tags=["Admin Control"])
-async def admin_decision(auth_code: str, action: str, admin_key: str):
-    if admin_key != "BLUE_PHOENIX_REBIRTH":
-        raise HTTPException(status_code=401, detail="Admin Access Denied")
-    if auth_code not in PENDING_TRANSFERS:
-        raise HTTPException(status_code=404, detail="Transaction Not Found")
-
-    tx = PENDING_TRANSFERS.pop(auth_code)
-    log_event("ADMIN", f"DECISION_{action.upper()}: {tx.client_name}", "SUCCESS")
-    return {"msg": f"Transaction {action}ed"}
-
-@app.post("/system-reset", tags=["Phoenix Protocol"])
-async def system_reset(admin_key: str):
-    if admin_key == "BLUE_PHOENIX_REBIRTH":
-        SYSTEM_CONFIG["is_locked"] = False
-        log_event("ADMIN", "PHOENIX_RESET_COMPLETE", "SUCCESS")
-        return {"message": "Sentron Reset: System Reborn."}
-    raise HTTPException(status_code=401, detail="Phoenix Key Mismatch")
+if __name__ == "__main__":
+    import uvicorn
+    # Initial Splash
+    update_dashboard("SYSTEM", "BOOT_SEQUENCE_COMPLETE", "SUCCESS")
+    uvicorn.run(app, host="127.0.0.1", port=8000)
 
