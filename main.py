@@ -50,7 +50,7 @@ app = FastAPI(title="Sentron Alpha Vault - Final Build")
 USER_REGISTRY = {
     "Elon Musk": {"level": 3, "secret_key": "ALPHA_9"},
     "Imran": {"level": 3, "secret_key": "ARISE_2"},
-    "Duke Dean": {"level": 2, "secret_key": None},
+    "Duke": {"level": 2, "secret_key": None},
     "Michael": {"level": 1, "secret_key": None},
 }
 
