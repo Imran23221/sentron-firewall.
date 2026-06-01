@@ -215,6 +215,22 @@ async def approve_request(queue_id: int, authenticated: bool = Depends(verify_ad
     
     update_dashboard(tx[0], "ADMIN_MANUAL_RELEASE", "SUCCESS", tx[1], details=f"Database row item #{queue_id} authorized.")
     return {"status": "SUCCESS", "msg": f"Transaction #{queue_id} successfully processed out of persistent storage."}
+@app.post("/admin/deny-request/{queue_id}", tags=["Admin Control"])
+async def deny_request(queue_id: int, authenticated: bool = Depends(verify_admin_token)):
+    conn = sqlite3.connect(DB_FILE)
+    tx = conn.execute("SELECT client, amount FROM queue WHERE id=?", (queue_id,)).fetchone()
+    if not tx:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Transaction id missing from production queue database.")
+    
+    # Permanently delete the flagged transaction from the database
+    conn.execute("DELETE FROM queue WHERE id=?", (queue_id,))
+    conn.commit()
+    conn.close()
+    
+    # Update dashboard and drop it into the security log file
+    update_dashboard(tx[0], "ADMIN_MANUAL_DENIAL", "DENIED", tx[1], details=f"Database row item #{queue_id} shredded by administrator.")
+    return {"status": "DENIED", "msg": f"Transaction #{queue_id} successfully shredded and removed from storage."}
 
 # --- 🛡️ 6. THE MASTER VERIFY FUNCTION ---
 
