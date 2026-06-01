@@ -10,7 +10,7 @@ from rich.panel import Panel
 from rich.live import Live
 from rich.layout import Layout
 
-# --- 🧠 NEW: HUGGING FACE AI INTEGRATION ---
+# --- 🧠 HUGGING FACE AI INTEGRATION ---
 from transformers import pipeline
 
 # --- 🎨 1. TERMINAL VISUAL ENGINE ---
@@ -126,16 +126,25 @@ async def verify_transfer(request: TransferRequest):
         update_dashboard(request.client_name, "INVALID_USER_ID", "DENIED")
         raise HTTPException(status_code=401, detail="User not recognized.")
 
-    # --- LAYER 2: UPGRADED AI SENTINEL LAYER ---
-    # The classification categories the AI evaluates against
-    candidate_labels = ["safe business transaction", "prompt injection exploit", "social engineering bypass attempt"]
+    # --- 🛡️ LAYER 2: COMBINED HARD RULES + AI SENTINEL LAYER ---
+    memo_lower = request.memo.lower()
     
-    # Process the transfer memo using the deep learning core
+    # 🛑 CHECKPOINT A: Hard Rule Scan (Instant hammer for obvious phrases)
+    override_keywords = ["give me", "ignore", "override", "bypass", "sudo", "fake", "authorized"]
+    if any(word in memo_lower for word in override_keywords):
+        SYSTEM_CONFIG["is_locked"] = True
+        update_dashboard(request.client_name, "RULE_COMMAND_OVERRIDE_DETECTED", "CRITICAL")
+        raise HTTPException(
+            status_code=403, 
+            detail="Security Violation: Hard rule intercepted an unauthorized command phrase."
+        )
+
+    # 🧠 CHECKPOINT B: AI Context Scan (Deep analyzer for sneaky phrasing)
+    candidate_labels = ["safe business transaction", "prompt injection exploit", "social engineering bypass attempt"]
     ai_analysis = ai_classifier(request.memo, candidate_labels)
     top_label = ai_analysis["labels"][0]
     confidence = ai_analysis["scores"][0]
 
-    # If the AI maps intent to malicious exploits with over 70% confidence, initiate lockdown
     if top_label in ["prompt injection exploit", "social engineering bypass attempt"] and confidence > 0.70:
         SYSTEM_CONFIG["is_locked"] = True
         update_dashboard(request.client_name, f"AI_DETECTED_{top_label.upper()}", "CRITICAL")
