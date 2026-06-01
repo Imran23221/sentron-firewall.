@@ -10,13 +10,21 @@ from rich.panel import Panel
 from rich.live import Live
 from rich.layout import Layout
 
+# --- 🧠 NEW: HUGGING FACE AI INTEGRATION ---
+from transformers import pipeline
+
 # --- 🎨 1. TERMINAL VISUAL ENGINE ---
 console = Console()
 log_history = []
 
+# Initialize the free AI classification pipeline on boot
+console.print("[bold yellow]Initializing AI Sentinel Matrix Core...[/]")
+ai_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+console.print("[bold green]AI Sentinel Core ONLINE.[/]")
+
 def update_dashboard(user: str, event: str, status: str, amount: float = 0):
     """Updates the colorful terminal dashboard"""
-    table = Table(title="🛡️ SENTRON ALPHA: LIVE SECURITY FEED", title_style="bold magenta", expand=True)
+    table = Table(title=" SENTRON ALPHA: LIVE SECURITY FEED", title_style="bold magenta", expand=True)
     table.add_column("TIME", style="cyan", no_wrap=True)
     table.add_column("USER", style="yellow")
     table.add_column("EVENT", style="white")
@@ -58,7 +66,6 @@ USER_HISTORY = {} # For Pattern Radar
 FAILED_ATTEMPTS = {} # For 3-Strike Trap
 PENDING_VAULT = [] # For $10M Gate Queue
 SYSTEM_CONFIG = {"is_locked": False, "daily_limit": 10000000}
-AI_BRAINWASH_WORDS = ["ignore", "override", "bypass", "sudo", "instruction", "forget"]
 
 class TransferRequest(BaseModel):
     client_name: str
@@ -69,7 +76,7 @@ class TransferRequest(BaseModel):
 
 @app.get("/admin/emergency-reset", tags=["Admin Control"])
 async def emergency_reset(admin_key: str):
-    if admin_key != "BLUE_PHOENIX_REBIRTH":
+    if admin_key != "BLUE_PHOENIX":
         update_dashboard("UNKNOWN", "ILLEGAL_RESET_ATTEMPT", "CRITICAL")
         raise HTTPException(status_code=401, detail="Invalid Admin Key")
     SYSTEM_CONFIG["is_locked"] = False
@@ -84,7 +91,7 @@ async def view_requests():
 
 @app.post("/admin/approve-request/{index}", tags=["Admin Control"])
 async def approve_request(index: int, admin_key: str):
-    if admin_key != "BLUE_PHOENIX_REBIRTH":
+    if admin_key != "BLUE_PHOENIX":
         raise HTTPException(status_code=401, detail="Invalid Key")
     try:
         tx = PENDING_VAULT.pop(index)
@@ -95,7 +102,7 @@ async def approve_request(index: int, admin_key: str):
 
 @app.post("/admin/deny-request/{index}", tags=["Admin Control"])
 async def deny_request(index: int, admin_key: str):
-    if admin_key != "BLUE_PHOENIX_REBIRTH":
+    if admin_key != "BLUE_PHOENIX":
         raise HTTPException(status_code=401, detail="Invalid Key")
     try:
         tx = PENDING_VAULT.pop(index)
@@ -119,11 +126,23 @@ async def verify_transfer(request: TransferRequest):
         update_dashboard(request.client_name, "INVALID_USER_ID", "DENIED")
         raise HTTPException(status_code=401, detail="User not recognized.")
 
-    # LAYER 2: AI SENTINEL (BRAINWASH DETECTION)
-    if any(word in request.memo.lower() for word in AI_BRAINWASH_WORDS):
+    # --- LAYER 2: UPGRADED AI SENTINEL LAYER ---
+    # The classification categories the AI evaluates against
+    candidate_labels = ["safe business transaction", "prompt injection exploit", "social engineering bypass attempt"]
+    
+    # Process the transfer memo using the deep learning core
+    ai_analysis = ai_classifier(request.memo, candidate_labels)
+    top_label = ai_analysis["labels"][0]
+    confidence = ai_analysis["scores"][0]
+
+    # If the AI maps intent to malicious exploits with over 70% confidence, initiate lockdown
+    if top_label in ["prompt injection exploit", "social engineering bypass attempt"] and confidence > 0.70:
         SYSTEM_CONFIG["is_locked"] = True
-        update_dashboard(request.client_name, "BRAINWASH_PROMPT_DETECTED", "CRITICAL")
-        raise HTTPException(status_code=403, detail="Security Violation: AI Sentinel Triggered.")
+        update_dashboard(request.client_name, f"AI_DETECTED_{top_label.upper()}", "CRITICAL")
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Security Violation: AI Sentinel intercepted a threat. Confidence: {confidence*100:.1f}%"
+        )
 
     # LAYER 3: LEVEL 3 KEY CHECK (3-STRIKE TRAP)
     if user["level"] == 3:
@@ -166,4 +185,3 @@ if __name__ == "__main__":
     # Initial Splash
     update_dashboard("SYSTEM", "BOOT_SEQUENCE_COMPLETE", "SUCCESS")
     uvicorn.run(app, host="127.0.0.1", port=8000)
-
