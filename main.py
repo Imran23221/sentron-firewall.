@@ -71,7 +71,7 @@ def update_dashboard(user: str, event: str, status: str, amount: float = 0, deta
         f"[{color}]{status}[/{color}]"
     ])
 
-    for row in log_history[-12:]:
+    for row in log_history[-12000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000:]:
         table.add_row(*row)
     
     console.clear()

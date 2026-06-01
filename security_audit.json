@@ -6,5 +6,93 @@
         "status": "SUCCESS",
         "amount": 0,
         "details": "Database connection active, AI matrix standing by."
+    },
+    {
+        "timestamp": "2026-06-01T08:45:30.114870",
+        "user": "SYSTEM",
+        "event": "BOOT_SEQUENCE_COMPLETE",
+        "status": "SUCCESS",
+        "amount": 0,
+        "details": "Database connection active, AI matrix standing by."
+    },
+    {
+        "timestamp": "2026-06-01T08:48:03.703380",
+        "user": "Imran",
+        "event": "KEY_MISMATCH_STRIKE_1",
+        "status": "DENIED",
+        "amount": 0,
+        "details": ""
+    },
+    {
+        "timestamp": "2026-06-01T08:48:21.466423",
+        "user": "Imran",
+        "event": "TRANSFER_AUTHORIZED",
+        "status": "SUCCESS",
+        "amount": 100.0,
+        "details": ""
+    },
+    {
+        "timestamp": "2026-06-01T08:49:17.963331",
+        "user": "Imran",
+        "event": "KEY_MISMATCH_STRIKE_1",
+        "status": "DENIED",
+        "amount": 0,
+        "details": ""
+    },
+    {
+        "timestamp": "2026-06-01T08:49:21.634784",
+        "user": "Imran",
+        "event": "KEY_MISMATCH_STRIKE_2",
+        "status": "DENIED",
+        "amount": 0,
+        "details": ""
+    },
+    {
+        "timestamp": "2026-06-01T08:49:24.138115",
+        "user": "Imran",
+        "event": "KEY_MISMATCH_STRIKE_3",
+        "status": "DENIED",
+        "amount": 0,
+        "details": ""
+    },
+    {
+        "timestamp": "2026-06-01T08:49:24.150039",
+        "user": "SYSTEM",
+        "event": "MAX_STRIKES_LOCKDOWN",
+        "status": "CRITICAL",
+        "amount": 0,
+        "details": "Persistent User Imran breached maximum retry limit."
+    },
+    {
+        "timestamp": "2026-06-01T08:49:25.509501",
+        "user": "Imran",
+        "event": "LOCKED_VAULT_ACCESS",
+        "status": "CRITICAL",
+        "amount": 0,
+        "details": ""
+    },
+    {
+        "timestamp": "2026-06-01T08:50:11.388025",
+        "user": "ADMIN",
+        "event": "SECURE_SESSION_STARTED",
+        "status": "SUCCESS",
+        "amount": 0,
+        "details": ""
+    },
+    {
+        "timestamp": "2026-06-01T08:51:31.425947",
+        "user": "ADMIN",
+        "event": "SECURE_SESSION_STARTED",
+        "status": "SUCCESS",
+        "amount": 0,
+        "details": ""
+    },
+    {
+        "timestamp": "2026-06-01T08:52:05.646397",
+        "user": "ADMIN",
+        "event": "SYSTEM_FULL_RESTORE",
+        "status": "SUCCESS",
+        "amount": 0,
+        "details": "Cleared all SQL strikes and decrypted vault."
     }
 ]
