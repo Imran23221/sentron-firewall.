@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentron Bank // AI Intent Firewall</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght=500;700;900&family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #060208;
+            color: #f8fafc;
+            padding: 30px;
+            background-image: radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.15) 0px, transparent 50%);
+        }
+        .ui-font { font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(236, 72, 153, 0.2);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #ec4899, #f43f5e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 30px;
+        }
+        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+        .panel {
+            background: rgba(18, 10, 22, 0.8);
+            border: 1px solid rgba(236, 72, 153, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        .panel-title {
+            color: #ec4899;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* BANKING FORM */
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; }
+        input, select {
+            width: 100%;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+        }
+        input:focus, select:focus { border-color: #ec4899; outline: none; }
+        
+        .btn-submit {
+            width: 100%;
+            background: #ec4899;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-submit:hover { background: #db2777; box-shadow: 0 0 15px rgba(236, 72, 153, 0.4); }
+
+        /* METRICS DISPLAY */
+        .balance-box {
+            text-align: center;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px dashed rgba(236,72,153,0.3);
+        }
+        .balance-val { font-size: 2.2rem; font-weight: 800; color: #10b981; margin-top: 5px; }
+
+        /* TRANSACTIONS TABLE */
+        .stream-container { max-height: 400px; overflow-y: auto; padding-right: 5px; }
+        .tx-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr;
+            padding: 12px;
+            background: rgba(255,255,255,0.02);
+            margin-bottom: 8px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            text-align: center;
+        }
+        .passed { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.2); }
+        .blocked { background: rgba(244, 63, 94, 0.1); color: #f43f5e; border: 1px solid rgba(244,63,94,0.2); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1 class="ui-font">SENTRON BANKING NODE</h1>
+            <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 4px;">INTENT-SCREENED SECURE TRANSACTIONS</p>
+        </div>
+        <div class="ui-font" id="firewall-status" style="background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid #10b981; padding: 6px 12px; border-radius: 6px; transition: all 0.3s;">
+            ● AI FIREWALL SECURE
+        </div>
+    </header>
+
+    <div class="grid">
+        <div class="panel">
+            <div class="panel-title ui-font">EXECUTE WIRE TRANSFER</div>
+            
+            <div class="balance-box">
+                <label>Available Liquid Balance</label>
+                <div class="balance-val ui-font" id="balance-display">$25,000.00</div>
+            </div>
+
+            <div class="form-group">
+                <label>Target Wallet / Node Destination</label>
+                <input type="text" id="tx-target" placeholder="e.g. 0x71C... or ACC-4029">
+            </div>
+            <div class="form-group">
+                <label>Transfer Amount ($)</label>
+                <input type="number" id="tx-amount" placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label>Intent Signature (AI Inspected)</label>
+                <select id="tx-intent">
+                    <option value="safe">Standard Node Liquidity Allocation</option>
+                    <option value="safe">Commercial Core System Invoice</option>
+                    <option value="malicious">Root Exploitation Overwrite Payload Injection</option>
+                    <option value="malicious">Bypass Authentication State Array</option>
+                </select>
+            </div>
+            <button onclick="handleTransfer()" class="btn-submit ui-font">DISPATCH FUNDS</button>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title ui-font">
+                <span>FIREWALL TRANSACTION AUDIT</span>
+                <span style="color: #94a3b8; font-size: 0.85rem; font-weight: normal;" id="stats-display">Scanned: 2 | Blocked: 0</span>
+            </div>
+
+            <div class="stream-container" id="log-box">
+                <div class="tx-row">
+                    <span style="color: #ec4899; font-weight: bold;">TX-8921</span>
+                    <span>Initial Node Setup Deposit</span>
+                    <span style="text-align: right; padding-right: 10px; font-weight: 600; color: #10b981;">+$5,000.00</span>
+                    <span class="badge passed">Passed</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentBalance = 25000.00;
+        let scannedCount = 1;
+        let blockedCount = 0;
+
+        function handleTransfer() {
+            const target = document.getElementById('tx-target').value || "Unknown Node";
+            const amountInput = document.getElementById('tx-amount').value;
+            const intent = document.getElementById('tx-intent').value;
+            const amount = parseFloat(amountInput);
+
+            if (!amountInput || amount <= 0) {
+                alert("Please enter a valid transfer amount.");
+                return;
+            }
+
+            scannedCount++;
+            const txId = "TX-" + Math.floor(Math.random() * 8999 + 1000);
+            const logBox = document.getElementById('log-box');
+            
+            const row = document.createElement('div');
+            row.className = 'tx-row';
+
+            if (intent === "malicious") {
+                blockedCount++;
+                // Create Blocked Log Entry
+                row.innerHTML = `
+                    <span style="color: #ec4899; font-weight: bold;">${txId}</span>
+                    <span style="color: #f43f5e;">MALICIOUS: Target ${target}</span>
+                    <span style="text-align: right; padding-right: 10px; font-weight: 600;">$${amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                    <span class="badge blocked">Blocked</span>
+                `;
+                
+                // Flash Alert UI
+                const statusBadge = document.getElementById('firewall-status');
+                statusBadge.innerText = "⚠️ DETECTED MALICIOUS INTENT";
+                statusBadge.style.background = "rgba(244, 63, 94, 0.2)";
+                statusBadge.style.color = "#f43f5e";
+                statusBadge.style.borderColor = "#f43f5e";
+                
+                setTimeout(() => {
+                    statusBadge.innerText = "● AI FIREWALL SECURE";
+                    statusBadge.style.background = "rgba(16, 185, 129, 0.1)";
+                    statusBadge.style.color = "#10b981";
+                    statusBadge.style.borderColor = "#10b981";
+                }, 1500);
+
+            } else {
+                // Successful transfer calculation
+                currentBalance -= amount;
+                document.getElementById('balance-display').innerText = "$" + currentBalance.toLocaleString(undefined, {minimumFractionDigits: 2});
+                
+                row.innerHTML = `
+                    <span style="color: #ec4899; font-weight: bold;">${txId}</span>
+                    <span>Sent to ${target}</span>
+                    <span style="text-align: right; padding-right: 10px; font-weight: 600;">-$${amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                    <span class="badge passed">Passed</span>
+                `;
+            }
+
+            // Insert new transfer at the top of the history list
+            logBox.insertBefore(row, logBox.firstChild);
+            document.getElementById('stats-display').innerText = `Scanned: ${scannedCount} | Blocked: ${blockedCount}`;
+            
+            // Clear inputs
+            document.getElementById('tx-target').value = "";
+            document.getElementById('tx-amount').value = "";
+        }
+    </script>
+</body>
+</html>
